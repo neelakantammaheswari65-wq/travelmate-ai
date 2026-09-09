@@ -1,0 +1,6 @@
+{
+  "name": "TravelMate AI - Smart Tourism & Travel Intelligence",
+  "description": "AI-powered smart tourism platform. Generates personalized, budget-aware, safe, and sustainable travel itineraries with a tourism business intelligence dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
