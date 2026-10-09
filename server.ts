@@ -33,24 +33,29 @@ function getGeminiClient(): GoogleGenAI | null {
 
 // Helper: Multi-model resilient caller with fallback handling for high-demand spikes
 async function generateJsonWithFallback(ai: GoogleGenAI, prompt: string) {
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.8-flash'];
+  const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
   
   for (const model of candidateModels) {
     try {
-      const response = await ai.models.generateContent({
+      const callPromise = ai.models.generateContent({
         model,
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
         }
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout waiting for ${model}`)), 6000)
+      );
+
+      const response = await Promise.race([callPromise, timeoutPromise]);
       if (response && response.text) {
         return { text: response.text, model };
       }
     } catch (err: any) {
-      const isTransient = err?.status === 503 || err?.code === 503 || String(err?.message || '').includes('high demand') || String(err?.message || '').includes('UNAVAILABLE');
+      const isTransient = err?.status === 503 || err?.code === 503 || String(err?.message || '').includes('high demand') || String(err?.message || '').includes('UNAVAILABLE') || String(err?.message || '').includes('Timeout');
       if (isTransient) {
-        console.info(`Gemini model ${model} temporarily busy/experiencing high demand, trying fallback model...`);
+        console.info(`Gemini model ${model} temporarily busy/timed out, trying fallback model...`);
       } else {
         console.warn(`Gemini model ${model} error:`, err?.message || err);
       }
